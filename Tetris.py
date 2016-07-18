@@ -494,6 +494,7 @@ class Game(threading.Thread):
         print outstr
         if self.keylistener_thread.isAlive():
             print 'Press q to exit.'
+            self.keylistener_thread.stop()
             self.keylistener_thread.join()
         resume_cursor()
         sys.exit(0)
