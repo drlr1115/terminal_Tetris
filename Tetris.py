@@ -86,9 +86,6 @@ K_Q = 113
 K_MINUS = 45
 K_PLUS = 61
 
-# RLock
-mylock = threading.RLock()
-
 def gen_tetri_type():
     return random.randint(0, 6)
 
@@ -101,6 +98,15 @@ def prt_cell(bcolor, fcolor, axx, axy, pattern):
 
 def clean_cell(caxx, caxy):
     prt_cell('black', 'black', caxx, caxy, '  ')
+
+def hide_cursor():
+    print '\33[?25l'
+
+def set_cursor_pos(x, y):
+    print "\33[%d;%dH\33[0m" % (x, y)
+
+def resume_cursor():
+    print '\33[?25h'
 
 def usage():
     print 'Usage: Tetris\n\
@@ -115,8 +121,7 @@ Operating Instructions:\n \
   SPACE   --      DROP\n \
   +       --      LEVEL UP\n \
   -       --      LEVEL DOWN\n \
-  q/ESC   --      QUIT\n\n \
-  Enjoy :)\n\n'
+  q/ESC   --      QUIT\n\n'
 
 class Tetris:
     def __init__(self):
@@ -131,7 +136,8 @@ class Tetris:
         self.next_pos_y = 0
         self.score = 0
         self.level = 1
-        self.delay = 1
+        self.interval = 1
+        self.lock = threading.RLock()
         
         self.prepare_stage()
         
@@ -213,6 +219,9 @@ class Tetris:
                 linecount -= 1
         return countsum
 
+    def get_interval(self):
+        return self.interval
+
     def update_score(self, lines):
         if lines > 0:
             self.score += 2 ** lines - 1
@@ -221,59 +230,59 @@ class Tetris:
             self.prt_statusbar()
 
     def level_up(self):
-        mylock.acquire()
+        self.lock.acquire()
         if self.level >= 10:
-            mylock.release()
+            self.lock.release()
             return
         else:
             self.level += 1
-            self.delay = 1 - ((self.level-1) * 0.1)
+            self.interval = 1 - ((self.level-1) * 0.1)
             self.prt_statusbar()
-            mylock.release()
+            self.lock.release()
 
     def level_down(self):
-        mylock.acquire()
+        self.lock.acquire()
         if self.level <= 1:
-            mylock.release()
+            self.lock.release()
             return
         else:
             self.level -= 1
-            self.delay = 1 - ((self.level-1) * 0.1)
+            self.interval = 1 - ((self.level-1) * 0.1)
             self.prt_statusbar()
-            mylock.release()
+            self.lock.release()
 
     def prt_next(self):
         # This is only used when print the next Tetri
         next = TETRIS[self.next_type][self.next_orient]
-        for blkj in range(0,len(next)):
-            for blki in range(0,len(next[0])):
-                if next[blkj][blki] == 1:
-                    prt_cell('cyan', 'white', (blki+self.next_pos_x)*2, \
-                            blkj+self.next_pos_y, CELL_PATTERN)
+        for y in range(0,len(next)):
+            for x in range(0,len(next[0])):
+                if next[y][x] == 1:
+                    prt_cell('cyan', 'white', (x + self.next_pos_x) * 2, \
+                             y + self.next_pos_y, CELL_PATTERN)
 
     def del_from_stage(self):
-        self.block = TETRIS[self.type][self.orient]
-        for blkj in range(0,len(self.block)):
-            for blki in range(0,len(self.block[0])):
-                if self.block[blkj][blki] == 1:
-                    self.stage[self.pos_y+blkj][self.pos_x+blki] -= 1
+        tetri = TETRIS[self.type][self.orient]
+        for y in range(0,len(tetri)):
+            for x in range(0,len(tetri[0])):
+                if tetri[y][x] == 1:
+                    self.stage[self.pos_y + y][self.pos_x + x] -= 1
 
     def add_to_stage(self):
-        self.block = TETRIS[self.type][self.orient]
-        for blkj in range(0,len(self.block)):
-            for blki in range(0,len(self.block[0])):
-                if self.block[blkj][blki] == 1:
-                    self.stage[self.pos_y+blkj][self.pos_x+blki] += 1
+        tetri = TETRIS[self.type][self.orient]
+        for y in range(0,len(tetri)):
+            for x in range(0,len(tetri[0])):
+                if tetri[y][x] == 1:
+                    self.stage[self.pos_y + y][self.pos_x + x] += 1
 
     def rotate(self):
-        mylock.acquire()
+        self.lock.acquire()
         # rotate this Tetris
         if self.move_test(0, 0, 1) == 1:
             self.del_from_stage()
             self.orient = (self.orient + 1) % 4
             self.add_to_stage()
             self.prt_stage()
-        mylock.release()
+        self.lock.release()
 
     def set_current(self):
         self.pos_x = START_POS_X
@@ -283,13 +292,11 @@ class Tetris:
         self.add_to_stage()
         self.prt_stage()
         # if Game Over
-        self.block = TETRIS[self.type][self.orient]
-        for blkj in range(0,len(self.block)):
-            for blki in range(0,len(self.block[0])):
-                if self.block[blkj][blki] == 1:
-                    if self.stage[self.pos_y+blkj][self.pos_x+blki] > 1:
-                        #if keylistener_thread.isAlive():
-                        #    keylistener_thread.stop()
+        tetri = TETRIS[self.type][self.orient]
+        for y in range(0,len(tetri)):
+            for x in range(0,len(tetri[0])):
+                if tetri[y][x] == 1:
+                    if self.stage[self.pos_y + y][self.pos_x + x] > 1:
                         return 0
         return 1
 
@@ -300,25 +307,25 @@ class Tetris:
         self.next_type = gen_tetri_type()
 
     def move_left(self):
-        mylock.acquire()
+        self.lock.acquire()
         if self.move_test(-1, 0) == 1:
             self.del_from_stage()
-            self.pos_x -= 1 
+            self.pos_x -= 1
             self.add_to_stage()
             self.prt_stage()
-        mylock.release()
+        self.lock.release()
 
     def move_right(self):
-        mylock.acquire()
+        self.lock.acquire()
         if self.move_test(1, 0) == 1:
             self.del_from_stage()
             self.pos_x += 1
             self.add_to_stage()
             self.prt_stage()
-        mylock.release()
+        self.lock.release()
 
     def move_down(self):
-        mylock.acquire()
+        self.lock.acquire()
         if self.move_test(0, 1) == 1:
             self.del_from_stage()
             self.pos_y += 1
@@ -332,51 +339,51 @@ class Tetris:
             time.sleep(0.1)
             if self.set_current() == 0:
                 # Game Over
-                mylock.release()
+                self.lock.release()
                 return 0
             self.set_next()
             self.prt_statusbar()
-        mylock.release()
+        self.lock.release()
         return 1
 
-    def move_test(self,offsetX, offsetY, isRotate = 0):
+    def move_test(self, offset_x, offset_y, is_rotate = 0):
         self.del_from_stage()
-        self.orient = (self.orient + isRotate) % 4
-        self.pos_x += offsetX
-        self.pos_y += offsetY
-        tblock = TETRIS[self.type][self.orient]
+        self.orient = (self.orient + is_rotate) % 4
+        self.pos_x += offset_x
+        self.pos_y += offset_y
+        tetri = TETRIS[self.type][self.orient]
         # test border
-        for blkj in range(0,len(tblock)):
-            for blki in range(0,len(tblock[0])):
-                if tblock[blkj][blki] == 1:
-                    if self.pos_x+blki < 0 or self.pos_x+blki > STAGE_WIDTH-1 \
-                            or self.pos_y+blkj > STAGE_HEIGHT-1:
-                                self.pos_x -= offsetX
-                                self.pos_y -= offsetY
-                                self.orient = (self.orient - isRotate) % 4
+        for y in range(0,len(tetri)):
+            for x in range(0,len(tetri[0])):
+                if tetri[y][x] == 1:
+                    if self.pos_x + x < 0 or self.pos_x + x > STAGE_WIDTH-1 \
+                            or self.pos_y + y > STAGE_HEIGHT-1:
+                                self.pos_x -= offset_x
+                                self.pos_y -= offset_y
+                                self.orient = (self.orient - is_rotate) % 4
                                 self.add_to_stage()
-                                return 0 
+                                return 0
         # then test overlap
         self.add_to_stage()
-        for blkj in range(0,len(tblock)):
-            for blki in range(0,len(tblock[0])):
-                if tblock[blkj][blki] == 1:
-                    if self.stage[self.pos_y+blkj][self.pos_x+blki] > 1:
+        for y in range(0,len(tetri)):
+            for x in range(0,len(tetri[0])):
+                if tetri[y][x] == 1:
+                    if self.stage[self.pos_y + y][self.pos_x + x] > 1:
                         self.del_from_stage()
-                        self.pos_x -= offsetX
-                        self.pos_y -= offsetY
-                        self.orient = (self.orient - isRotate) % 4
+                        self.pos_x -= offset_x
+                        self.pos_y -= offset_y
+                        self.orient = (self.orient - is_rotate) % 4
                         self.add_to_stage()
                         return 0
         self.del_from_stage()
-        self.pos_x -= offsetX
-        self.pos_y -= offsetY
-        self.orient = (self.orient - isRotate) % 4
+        self.pos_x -= offset_x
+        self.pos_y -= offset_y
+        self.orient = (self.orient - is_rotate) % 4
         self.add_to_stage()
         return 1
 
     def drop(self):
-        mylock.acquire()
+        self.lock.acquire()
         downlines = 1
         while True:
             if self.move_test(0,downlines) == 1:
@@ -394,11 +401,11 @@ class Tetris:
         time.sleep(0.1)
         if self.set_current() == 0:
             # Game Over
-            mylock.release()
+            self.lock.release()
             return 0
         self.set_next()
         self.prt_statusbar()
-        mylock.release()
+        self.lock.release()
         return 1
 
 class KeyListener(threading.Thread):
@@ -457,21 +464,23 @@ class Game(threading.Thread):
         self.tetris = Tetris()
         self.keylistener_thread = KeyListener(self.tetris)
 
+    def start_game(self):
+        hide_cursor()
+        self.keylistener_thread.start()
+
     def end_game(self, outstr):
-        # set cursor postion 
-        print "\33[%d;%dH\33[0m" % (SCREEN_POS[1]+STAGE_HEIGHT+4, 1)
+        set_cursor_pos(SCREEN_POS[1] + STAGE_HEIGHT + 4, 1)
         print outstr
         if self.keylistener_thread.isAlive():
             print 'Press q to exit.'
             self.keylistener_thread.join()
-        # resume cursor display
-        print '\33[?25h'
+        resume_cursor()
         sys.exit(0)
 
     def run(self):
-        self.keylistener_thread.start()
+        self.start_game()
         while self.keylistener_thread.exit_game == 0:
-            time.sleep(self.tetris.delay)
+            time.sleep(self.tetris.get_interval())
             if self.tetris.move_down() == 0:
                 self.keylistener_thread.game_over = 1
                 break
@@ -484,14 +493,18 @@ class Game(threading.Thread):
     def stop(self):
         self.thread_stop = True
 
-# main start from here
-if len(sys.argv) == 2:
-    if sys.argv[1] == '-h' or sys.argv[1] == '--help':
-        usage()
-        sys.exit(0)
+def main():
+    if len(sys.argv) == 2:
+        if sys.argv[1] == '-h' or sys.argv[1] == '--help':
+            usage()
+            sys.exit(0)
+        else:
+            print 'Bad option!'
+            usage()
+            sys.exit(1)
 
-# hide cursor
-print '\33[?25l'
+    game = Game()
+    game.start()
 
-game = Game()
-game.start()
+if __name__ == '__main__':
+    main()
