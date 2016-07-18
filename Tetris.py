@@ -82,6 +82,7 @@ K_K = 107
 K_L = 108
 K_ESC = 27
 K_SPACE = 32
+K_P = 112
 K_Q = 113
 K_MINUS = 45
 K_PLUS = 61
@@ -137,6 +138,7 @@ class Tetris:
         self.score = 0
         self.level = 1
         self.interval = 1
+        self.pause = 0
         self.lock = threading.RLock()
         
         self.prepare_stage()
@@ -176,15 +178,24 @@ class Tetris:
         status_bar_x = NEXT_DISP_POS_X
         status_bar_y = NEXT_DISP_POS_Y + 5
         # clean previous StatusBar
-        for sby in range(SCREEN_POS[1], SCREEN_POS[1]+STAGE_HEIGHT+2):
-            for sbx in range(status_bar_x, status_bar_x+6):
-                clean_cell(sbx*2, sby)
+        for sby in range(SCREEN_POS[1], SCREEN_POS[1] + STAGE_HEIGHT + 2):
+            for sbx in range(status_bar_x, status_bar_x + 6):
+                clean_cell(sbx * 2, sby)
         # now print it
         self.prt_next()
-        prt_cell('black', 'cyan', status_bar_x*2, status_bar_y, 'Score')
-        prt_cell('black', 'white', status_bar_x*2, status_bar_y+1, self.score)
-        prt_cell('black', 'cyan', status_bar_x*2, status_bar_y+3, 'Level')
-        prt_cell('black', 'white', status_bar_x*2, status_bar_y+4, self.level)
+        prt_cell('black', 'cyan', status_bar_x * 2, status_bar_y, 'Score')
+        prt_cell('black', 'white', status_bar_x * 2, status_bar_y + 1, \
+                 self.score)
+        prt_cell('black', 'cyan', status_bar_x * 2, status_bar_y + 3, 'Level')
+        prt_cell('black', 'white', status_bar_x * 2, status_bar_y + 4, \
+                 self.level)
+
+        if self.pause == 1:
+            prt_cell('black', 'cyan', status_bar_x * 2, status_bar_y + 6, \
+                     'PAUSED!         ')
+        else:
+            prt_cell('black', 'cyan', status_bar_x * 2, status_bar_y + 6, \
+                     'Press P to pause')
 
     def prt_stage(self):
         for county in range(0, STAGE_HEIGHT):
@@ -250,6 +261,10 @@ class Tetris:
             self.interval = 1 - ((self.level-1) * 0.1)
             self.prt_statusbar()
             self.lock.release()
+
+    def do_pause(self, pause):
+        self.pause = pause
+        self.prt_statusbar()
 
     def prt_next(self):
         # This is only used when print the next Tetri
@@ -413,6 +428,7 @@ class KeyListener(threading.Thread):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.tetris = tetris
+        self.pause = 0
         self.exit_game = 0
         self.game_over = 0
 
@@ -428,26 +444,31 @@ class KeyListener(threading.Thread):
                 if not keych or keych == chr(4):
                     break
                 key = ord(keych)
-                if key == K_A or key == K_J:
-                    self.tetris.move_left()
-                elif key == K_D or key == K_L:
-                    self.tetris.move_right()
-                elif key == K_W or key == K_I:
-                    self.tetris.rotate()
-                elif key == K_S or key == K_K:
-                    if self.tetris.move_down() == 0:
-                        self.game_over = 1
-                        self.exit_game = 1
-                        break
-                elif key == K_SPACE:
-                    if self.tetris.drop() == 0:
-                        self.game_over = 1
-                        self.exit_game = 1
-                        break
-                elif key == K_MINUS:
+                if self.pause == 0:
+                    if key == K_A or key == K_J:
+                        self.tetris.move_left()
+                    elif key == K_D or key == K_L:
+                        self.tetris.move_right()
+                    elif key == K_W or key == K_I:
+                        self.tetris.rotate()
+                    elif key == K_S or key == K_K:
+                        if self.tetris.move_down() == 0:
+                            self.game_over = 1
+                            self.exit_game = 1
+                            break
+                    elif key == K_SPACE:
+                        if self.tetris.drop() == 0:
+                            self.game_over = 1
+                            self.exit_game = 1
+                            break
+
+                if key == K_MINUS:
                     self.tetris.level_down()
                 elif key == K_PLUS:
                     self.tetris.level_up()
+                elif key == K_P:
+                    self.pause = (self.pause + 1) % 2
+                    self.tetris.do_pause(self.pause)
                 elif key == K_Q or key == K_ESC:
                     self.exit_game = 1
                     break
@@ -481,9 +502,10 @@ class Game(threading.Thread):
         self.start_game()
         while self.keylistener_thread.exit_game == 0:
             time.sleep(self.tetris.get_interval())
-            if self.tetris.move_down() == 0:
-                self.keylistener_thread.game_over = 1
-                break
+            if self.keylistener_thread.pause == 0:
+                if self.tetris.move_down() == 0:
+                    self.keylistener_thread.game_over = 1
+                    break
 
         if self.keylistener_thread.game_over == 1:
             self.end_game('Game Over!')
