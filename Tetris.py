@@ -8,6 +8,7 @@ import sys
 import time
 import termios
 import threading
+from Utils import *
 
 # globle parameter
 STAGE_WIDTH = 10
@@ -120,6 +121,7 @@ Operating Instructions:\n \
   a/j     --      LEFT\n \
   d/l     --      RIGHT\n \
   SPACE   --      DROP\n \
+  p       --      PAUSE/RESUME\n \
   +       --      LEVEL UP\n \
   -       --      LEVEL DOWN\n \
   q/ESC   --      QUIT\n\n'
@@ -241,26 +243,22 @@ class Tetris:
             self.prt_statusbar()
 
     def level_up(self):
-        self.lock.acquire()
+        guard = LockGuard(self.lock)
         if self.level >= 10:
-            self.lock.release()
             return
         else:
             self.level += 1
             self.interval = 1 - ((self.level-1) * 0.1)
             self.prt_statusbar()
-            self.lock.release()
 
     def level_down(self):
-        self.lock.acquire()
+        guard = LockGuard(self.lock)
         if self.level <= 1:
-            self.lock.release()
             return
         else:
             self.level -= 1
             self.interval = 1 - ((self.level-1) * 0.1)
             self.prt_statusbar()
-            self.lock.release()
 
     def do_pause(self, pause):
         self.pause = pause
@@ -290,14 +288,13 @@ class Tetris:
                     self.stage[self.pos_y + y][self.pos_x + x] += 1
 
     def rotate(self):
-        self.lock.acquire()
+        guard = LockGuard(self.lock)
         # rotate this Tetris
         if self.move_test(0, 0, 1) == 1:
             self.del_from_stage()
             self.orient = (self.orient + 1) % 4
             self.add_to_stage()
             self.prt_stage()
-        self.lock.release()
 
     def set_current(self):
         self.pos_x = START_POS_X
@@ -322,25 +319,23 @@ class Tetris:
         self.next_type = gen_tetri_type()
 
     def move_left(self):
-        self.lock.acquire()
+        guard = LockGuard(self.lock)
         if self.move_test(-1, 0) == 1:
             self.del_from_stage()
             self.pos_x -= 1
             self.add_to_stage()
             self.prt_stage()
-        self.lock.release()
 
     def move_right(self):
-        self.lock.acquire()
+        guard = LockGuard(self.lock)
         if self.move_test(1, 0) == 1:
             self.del_from_stage()
             self.pos_x += 1
             self.add_to_stage()
             self.prt_stage()
-        self.lock.release()
 
     def move_down(self):
-        self.lock.acquire()
+        guard = LockGuard(self.lock)
         if self.move_test(0, 1) == 1:
             self.del_from_stage()
             self.pos_y += 1
@@ -354,11 +349,9 @@ class Tetris:
             time.sleep(0.1)
             if self.set_current() == 0:
                 # Game Over
-                self.lock.release()
                 return 0
             self.set_next()
             self.prt_statusbar()
-        self.lock.release()
         return 1
 
     def move_test(self, offset_x, offset_y, is_rotate = 0):
@@ -398,7 +391,7 @@ class Tetris:
         return 1
 
     def drop(self):
-        self.lock.acquire()
+        guard = LockGuard(self.lock)
         downlines = 1
         while True:
             if self.move_test(0,downlines) == 1:
@@ -416,11 +409,9 @@ class Tetris:
         time.sleep(0.1)
         if self.set_current() == 0:
             # Game Over
-            self.lock.release()
             return 0
         self.set_next()
         self.prt_statusbar()
-        self.lock.release()
         return 1
 
 class KeyListener(threading.Thread):
