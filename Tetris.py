@@ -127,6 +127,7 @@ Operating Instructions:\n \
   q/ESC   --      QUIT\n\n'
 
 class Tetris:
+    """Tetris Game"""
     def __init__(self):
         self.stage = []
         self.orient = 0
@@ -143,24 +144,24 @@ class Tetris:
         self.pause = 0
         self.lock = threading.RLock()
         
-        self.prepare_stage()
+        self.__prepare_stage()
         
-    def prepare_stage(self):
-        self.prt_border()
-        self.init_stage(STAGE_WIDTH,STAGE_HEIGHT)
-        self.set_next()
-        self.set_current()
-        self.set_next()
-        self.prt_statusbar()
+    def __prepare_stage(self):
+        self.__prt_border()
+        self.__init_stage(STAGE_WIDTH,STAGE_HEIGHT)
+        self.__set_next()
+        self.__set_current()
+        self.__set_next()
+        self.__prt_statusbar()
 
-    def init_stage(self, width, height):
+    def __init_stage(self, width, height):
         single_line = []
         for count in range(0, width):
             single_line.append(0)
         for count in range(0, height):
             self.stage.append(single_line[:])
 
-    def prt_border(self):
+    def __prt_border(self):
         # clean screen
         print "\33[2J\33[0m"
         # top
@@ -176,30 +177,33 @@ class Tetris:
         for count in range(SCREEN_POS[1], SCREEN_POS[1]+STAGE_HEIGHT+2):
             prt_cell('cyan', 'white',(SCREEN_POS[0]+STAGE_WIDTH+1)*2 ,count , '||')
 
-    def prt_statusbar(self):
-        status_bar_x = NEXT_DISP_POS_X
-        status_bar_y = NEXT_DISP_POS_Y + 5
+    def __prt_statusbar(self):
+        info_x = NEXT_DISP_POS_X
+        info_y = NEXT_DISP_POS_Y + 5
+        status_bar_x = SCREEN_POS[0] + STAGE_WIDTH + 2
+        status_bar_y = SCREEN_POS[1]
+
         # clean previous StatusBar
-        for sby in range(SCREEN_POS[1], SCREEN_POS[1] + STAGE_HEIGHT + 2):
-            for sbx in range(status_bar_x, status_bar_x + 6):
+        for sby in range(status_bar_y, status_bar_y + STAGE_HEIGHT + 2):
+            for sbx in range(status_bar_x, status_bar_x + 11):
                 clean_cell(sbx * 2, sby)
         # now print it
-        self.prt_next()
-        prt_cell('black', 'cyan', status_bar_x * 2, status_bar_y, 'Score')
-        prt_cell('black', 'white', status_bar_x * 2, status_bar_y + 1, \
+        self.__prt_next()
+        prt_cell('black', 'cyan', info_x * 2, info_y, 'Score')
+        prt_cell('black', 'white', info_x * 2, info_y + 1, \
                  self.score)
-        prt_cell('black', 'cyan', status_bar_x * 2, status_bar_y + 3, 'Level')
-        prt_cell('black', 'white', status_bar_x * 2, status_bar_y + 4, \
+        prt_cell('black', 'cyan', info_x * 2, info_y + 3, 'Level')
+        prt_cell('black', 'white', info_x * 2, info_y + 4, \
                  self.level)
 
         if self.pause == 1:
-            prt_cell('black', 'cyan', status_bar_x * 2, status_bar_y + 6, \
+            prt_cell('black', 'cyan', info_x * 2, info_y + 6, \
                      'PAUSED!         ')
         else:
-            prt_cell('black', 'cyan', status_bar_x * 2, status_bar_y + 6, \
+            prt_cell('black', 'cyan', info_x * 2, info_y + 6, \
                      'Press P to pause')
 
-    def prt_stage(self):
+    def __prt_stage(self):
         for county in range(0, STAGE_HEIGHT):
             for countx in range(0, STAGE_WIDTH):
                 if self.stage[county][countx] > 0:
@@ -208,12 +212,12 @@ class Tetris:
                 else:
                     clean_cell((countx+SCREEN_POS[0]+1)*2, county+SCREEN_POS[1]+1)
 
-    def clean_stage(self):
+    def __clean_stage(self):
         for county in range(SCREEN_POS[1]+1, SCREEN_POS[1]+STAGE_HEIGHT+1):
             for countx in range(SCREEN_POS[0]+1, SCREEN_POS[0]+STAGE_WIDTH+1):
                 clean_cell(countx*2, county)
 
-    def purge_line(self):
+    def __purge_line(self):
         blank_line = []
         for count in range(0, STAGE_WIDTH):
             blank_line.append(0)
@@ -232,39 +236,14 @@ class Tetris:
                 linecount -= 1
         return countsum
 
-    def get_interval(self):
-        return self.interval
-
-    def update_score(self, lines):
+    def __update_score(self, lines):
         if lines > 0:
             self.score += 2 ** lines - 1
             time.sleep(0.5)
-            self.prt_stage()
-            self.prt_statusbar()
+            self.__prt_stage()
+            self.__prt_statusbar()
 
-    def level_up(self):
-        guard = LockGuard(self.lock)
-        if self.level >= 10:
-            return
-        else:
-            self.level += 1
-            self.interval = 1 - ((self.level-1) * 0.1)
-            self.prt_statusbar()
-
-    def level_down(self):
-        guard = LockGuard(self.lock)
-        if self.level <= 1:
-            return
-        else:
-            self.level -= 1
-            self.interval = 1 - ((self.level-1) * 0.1)
-            self.prt_statusbar()
-
-    def do_pause(self, pause):
-        self.pause = pause
-        self.prt_statusbar()
-
-    def prt_next(self):
+    def __prt_next(self):
         # This is only used when print the next Tetri
         next = TETRIS[self.next_type][self.next_orient]
         for y in range(0,len(next)):
@@ -273,36 +252,27 @@ class Tetris:
                     prt_cell('cyan', 'white', (x + self.next_pos_x) * 2, \
                              y + self.next_pos_y, CELL_PATTERN)
 
-    def del_from_stage(self):
+    def __del_from_stage(self):
         tetri = TETRIS[self.type][self.orient]
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
                 if tetri[y][x] == 1:
                     self.stage[self.pos_y + y][self.pos_x + x] -= 1
 
-    def add_to_stage(self):
+    def __add_to_stage(self):
         tetri = TETRIS[self.type][self.orient]
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
                 if tetri[y][x] == 1:
                     self.stage[self.pos_y + y][self.pos_x + x] += 1
 
-    def rotate(self):
-        guard = LockGuard(self.lock)
-        # rotate this Tetris
-        if self.move_test(0, 0, 1) == 1:
-            self.del_from_stage()
-            self.orient = (self.orient + 1) % 4
-            self.add_to_stage()
-            self.prt_stage()
-
-    def set_current(self):
+    def __set_current(self):
         self.pos_x = START_POS_X
         self.pos_y = START_POS_Y
         self.type = self.next_type
         self.orient = self.next_orient
-        self.add_to_stage()
-        self.prt_stage()
+        self.__add_to_stage()
+        self.__prt_stage()
         # if Game Over
         tetri = TETRIS[self.type][self.orient]
         for y in range(0,len(tetri)):
@@ -312,50 +282,14 @@ class Tetris:
                         return 0
         return 1
 
-    def set_next(self):
+    def __set_next(self):
         self.next_pos_x = NEXT_DISP_POS_X
         self.next_pos_y = NEXT_DISP_POS_Y
         self.next_orient = gen_tetri_orient()
         self.next_type = gen_tetri_type()
 
-    def move_left(self):
-        guard = LockGuard(self.lock)
-        if self.move_test(-1, 0) == 1:
-            self.del_from_stage()
-            self.pos_x -= 1
-            self.add_to_stage()
-            self.prt_stage()
-
-    def move_right(self):
-        guard = LockGuard(self.lock)
-        if self.move_test(1, 0) == 1:
-            self.del_from_stage()
-            self.pos_x += 1
-            self.add_to_stage()
-            self.prt_stage()
-
-    def move_down(self):
-        guard = LockGuard(self.lock)
-        if self.move_test(0, 1) == 1:
-            self.del_from_stage()
-            self.pos_y += 1
-            self.add_to_stage()
-            self.prt_stage()
-        else:
-            # the Current one has landed
-            # check if there is a line needs to be purged, and update score
-            self.update_score(self.purge_line())
-            # Start Next one and generate a new next
-            time.sleep(0.1)
-            if self.set_current() == 0:
-                # Game Over
-                return 0
-            self.set_next()
-            self.prt_statusbar()
-        return 1
-
-    def move_test(self, offset_x, offset_y, is_rotate = 0):
-        self.del_from_stage()
+    def __move_test(self, offset_x, offset_y, is_rotate = 0):
+        self.__del_from_stage()
         self.orient = (self.orient + is_rotate) % 4
         self.pos_x += offset_x
         self.pos_y += offset_y
@@ -369,49 +303,128 @@ class Tetris:
                                 self.pos_x -= offset_x
                                 self.pos_y -= offset_y
                                 self.orient = (self.orient - is_rotate) % 4
-                                self.add_to_stage()
+                                self.__add_to_stage()
                                 return 0
         # then test overlap
-        self.add_to_stage()
+        self.__add_to_stage()
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
                 if tetri[y][x] == 1:
                     if self.stage[self.pos_y + y][self.pos_x + x] > 1:
-                        self.del_from_stage()
+                        self.__del_from_stage()
                         self.pos_x -= offset_x
                         self.pos_y -= offset_y
                         self.orient = (self.orient - is_rotate) % 4
-                        self.add_to_stage()
+                        self.__add_to_stage()
                         return 0
-        self.del_from_stage()
+        self.__del_from_stage()
         self.pos_x -= offset_x
         self.pos_y -= offset_y
         self.orient = (self.orient - is_rotate) % 4
-        self.add_to_stage()
+        self.__add_to_stage()
+        return 1
+
+    def get_interval(self):
+        """Get sleep interval, which determine the tetrmino auto move down speed"""
+        return self.interval
+
+    def level_up(self):
+        """Increase the game difficulty level"""
+        guard = LockGuard(self.lock)
+        if self.level >= 10:
+            return
+        else:
+            self.level += 1
+            self.interval = 1 - ((self.level-1) * 0.1)
+            self.__prt_statusbar()
+
+    def level_down(self):
+        """Decrease the game difficulty level"""
+        guard = LockGuard(self.lock)
+        if self.level <= 1:
+            return
+        else:
+            self.level -= 1
+            self.interval = 1 - ((self.level-1) * 0.1)
+            self.__prt_statusbar()
+
+    def do_pause(self, pause):
+        """Pause/Resume the game"""
+        self.pause = pause
+        self.__prt_statusbar()
+
+    def rotate(self):
+        """Rotate tetrmino"""
+        guard = LockGuard(self.lock)
+        # rotate this Tetris
+        if self.__move_test(0, 0, 1) == 1:
+            self.__del_from_stage()
+            self.orient = (self.orient + 1) % 4
+            self.__add_to_stage()
+            self.__prt_stage()
+
+    def move_left(self):
+        """Move tetrmino left"""
+        guard = LockGuard(self.lock)
+        if self.__move_test(-1, 0) == 1:
+            self.__del_from_stage()
+            self.pos_x -= 1
+            self.__add_to_stage()
+            self.__prt_stage()
+
+    def move_right(self):
+        """Move tetrmino right"""
+        guard = LockGuard(self.lock)
+        if self.__move_test(1, 0) == 1:
+            self.__del_from_stage()
+            self.pos_x += 1
+            self.__add_to_stage()
+            self.__prt_stage()
+
+    def move_down(self):
+        """Move tetrmino down"""
+        guard = LockGuard(self.lock)
+        if self.__move_test(0, 1) == 1:
+            self.__del_from_stage()
+            self.pos_y += 1
+            self.__add_to_stage()
+            self.__prt_stage()
+        else:
+            # the Current one has landed
+            # check if there is a line needs to be purged, and update score
+            self.__update_score(self.__purge_line())
+            # Start Next one and generate a new next
+            time.sleep(0.1)
+            if self.__set_current() == 0:
+                # Game Over
+                return 0
+            self.__set_next()
+            self.__prt_statusbar()
         return 1
 
     def drop(self):
+        """Drop tetrmino"""
         guard = LockGuard(self.lock)
         downlines = 1
         while True:
-            if self.move_test(0,downlines) == 1:
+            if self.__move_test(0,downlines) == 1:
                 downlines += 1
             else:
                 break
-        self.del_from_stage()
+        self.__del_from_stage()
         self.pos_y += (downlines -1)
-        self.add_to_stage()
-        self.prt_stage()
+        self.__add_to_stage()
+        self.__prt_stage()
         # the Current one has landed
         # check if there is a line needs to be purged, and update score
-        self.update_score(self.purge_line())
+        self.__update_score(self.__purge_line())
         # Start Next one and generate a new next
         time.sleep(0.1)
-        if self.set_current() == 0:
+        if self.__set_current() == 0:
             # Game Over
             return 0
-        self.set_next()
-        self.prt_statusbar()
+        self.__set_next()
+        self.__prt_statusbar()
         return 1
 
 class KeyListener(threading.Thread):
@@ -476,11 +489,11 @@ class Game(threading.Thread):
         self.tetris = Tetris()
         self.keylistener_thread = KeyListener(self.tetris)
 
-    def start_game(self):
+    def __start_game(self):
         hide_cursor()
         self.keylistener_thread.start()
 
-    def end_game(self, outstr):
+    def __end_game(self, outstr):
         set_cursor_pos(SCREEN_POS[1] + STAGE_HEIGHT + 4, 1)
         print outstr
         if self.keylistener_thread.isAlive():
@@ -491,7 +504,7 @@ class Game(threading.Thread):
         sys.exit(0)
 
     def run(self):
-        self.start_game()
+        self.__start_game()
         while self.keylistener_thread.exit_game == 0:
             time.sleep(self.tetris.get_interval())
             if self.keylistener_thread.pause == 0:
@@ -500,9 +513,9 @@ class Game(threading.Thread):
                     break
 
         if self.keylistener_thread.game_over == 1:
-            self.end_game('Game Over!')
+            self.__end_game('Game Over!')
         else:
-            self.end_game('Quit Game')
+            self.__end_game('Quit Game')
 
     def stop(self):
         self.thread_stop = True
