@@ -3,112 +3,12 @@
 
 # by Cliff Dong
 
-import random
 import sys
 import time
 import termios
 import threading
 from Utils import *
-
-# globle parameter
-STAGE_WIDTH = 10
-STAGE_HEIGHT = 20
-SCREEN_POS = [9, 10]
-NEXT_DISP_POS_X = SCREEN_POS[0] + STAGE_WIDTH + 4
-NEXT_DISP_POS_Y = SCREEN_POS[1] + 2
-
-START_POS_X = STAGE_WIDTH/2 - 1
-START_POS_Y = 0
-
-# Color
-BCOLOR = {  'black'      : 40,
-            'red'        : 41,
-            'green'      : 42,
-            'yellow'     : 43,
-            'blue'       : 44,
-            'purple'     : 45,
-            'cyan'       : 46,
-            'white'      : 47,
-          }
-FCOLOR = {  'black'      : 30,
-            'red'        : 31,
-            'green'      : 32,
-            'yellow'     : 33,
-            'blue'       : 34,
-            'purple'     : 35,
-            'cyan'       : 36,
-            'white'      : 37,
-         }
-
-# Tetromino
-# * * * *
-TETRI0 = (((1,1,1,1),(0,0,0,0)), ((1,0),(1,0),(1,0),(1,0)), \
-        ((1,1,1,1),(0,0,0,0)), ((1,0),(1,0),(1,0),(1,0)))
-# * *
-# * *
-TETRI1 = (((1,1),(1,1)), ((1,1),(1,1)), \
-        ((1,1),(1,1)), ((1,1),(1,1)))
-#   *
-# * * *
-TETRI2 = (((0,1,0),(1,1,1)), ((1,0),(1,1),(1,0)), \
-        ((1,1,1),(0,1,0)), ((0,1),(1,1),(0,1)))
-# *
-# * * *
-TETRI3 = (((1,0,0),(1,1,1)), ((1,1),(1,0),(1,0)), \
-        ((1,1,1),(0,0,1)), ((0,1),(0,1),(1,1)))
-# * * *
-# *
-TETRI4 = (((1,1,1),(1,0,0)), ((1,1),(0,1),(0,1)), \
-        ((0,0,1),(1,1,1)), ((1,0),(1,0),(1,1)))
-# * *
-#   * *
-TETRI5 = (((1,1,0),(0,1,1)), ((0,1),(1,1),(1,0)), \
-        ((1,1,0),(0,1,1)), ((0,1),(1,1),(1,0)))
-#   * *
-# * *
-TETRI6 = (((0,1,1),(1,1,0)), ((1,0),(1,1),(0,1)), \
-        ((0,1,1),(1,1,0)), ((1,0),(1,1),(0,1)))
-
-TETRIS = (TETRI0, TETRI1, TETRI2, TETRI3, TETRI4, TETRI5, TETRI6)
-CELL_PATTERN = '[]'
-
-# Key
-K_W = 119
-K_A = 97
-K_S = 115
-K_D = 100
-K_I = 105
-K_J = 106
-K_K = 107
-K_L = 108
-K_ESC = 27
-K_SPACE = 32
-K_P = 112
-K_Q = 113
-K_MINUS = 45
-K_PLUS = 61
-
-def gen_tetri_type():
-    return random.randint(0, 6)
-
-def gen_tetri_orient():
-    return random.randint(0, 3)
-
-def prt_cell(bcolor, fcolor, axx, axy, pattern):
-    print "\33[%d;%dH\33[%s;%sm%s\33[0m" % (axy, axx, BCOLOR[bcolor], \
-            FCOLOR[fcolor], pattern)
-
-def clean_cell(caxx, caxy):
-    prt_cell('black', 'black', caxx, caxy, '  ')
-
-def hide_cursor():
-    print '\33[?25l'
-
-def set_cursor_pos(x, y):
-    print "\33[%d;%dH\33[0m" % (x, y)
-
-def resume_cursor():
-    print '\33[?25h'
+from Config import *
 
 def usage():
     print 'Usage: Tetris\n\
@@ -128,7 +28,15 @@ Operating Instructions:\n \
 
 class Tetris:
     """Tetris Game"""
-    def __init__(self):
+    def __init__(self, width, height, scr_pos, pattern):
+        self.stage_width = width
+        self.stage_height = height
+        self.scr_pos_x = scr_pos[0]
+        self.scr_pos_y = scr_pos[1]
+        self.pattern = pattern
+        self.next_disp_pos_x = self.scr_pos_x + self.stage_width + 4
+        self.next_disp_pos_y = self.scr_pos_y + 2
+
         self.stage = []
         self.orient = 0
         self.type = 0
@@ -148,7 +56,7 @@ class Tetris:
         
     def __prepare_stage(self):
         self.__prt_border()
-        self.__init_stage(STAGE_WIDTH,STAGE_HEIGHT)
+        self.__init_stage(self.stage_width,self.stage_height)
         self.__set_next()
         self.__set_current()
         self.__set_next()
@@ -165,26 +73,26 @@ class Tetris:
         # clean screen
         print "\33[2J\33[0m"
         # top
-        for count in range(SCREEN_POS[0]*2, (SCREEN_POS[0]+STAGE_WIDTH+2)*2):
-            prt_cell('cyan', 'white',count ,SCREEN_POS[1], '-')
+        for count in range(self.scr_pos_x*2, (self.scr_pos_x+self.stage_width+2)*2):
+            prt_cell('cyan', 'white',count ,self.scr_pos_y, '=')
         # bottom
-        for count in range(SCREEN_POS[0]*2, (SCREEN_POS[0]+STAGE_WIDTH+2)*2):
-            prt_cell('cyan', 'white',count ,SCREEN_POS[1]+STAGE_HEIGHT+1, '-')
+        for count in range(self.scr_pos_x*2, (self.scr_pos_x+self.stage_width+2)*2):
+            prt_cell('cyan', 'white',count ,self.scr_pos_y+self.stage_height+1, '=')
         # left
-        for count in range(SCREEN_POS[1], SCREEN_POS[1]+STAGE_HEIGHT+2):
-            prt_cell('cyan', 'white',SCREEN_POS[0]*2 ,count , '||') 
+        for count in range(self.scr_pos_y, self.scr_pos_y+self.stage_height+2):
+            prt_cell('cyan', 'white',self.scr_pos_x*2 ,count , '||')
         # right
-        for count in range(SCREEN_POS[1], SCREEN_POS[1]+STAGE_HEIGHT+2):
-            prt_cell('cyan', 'white',(SCREEN_POS[0]+STAGE_WIDTH+1)*2 ,count , '||')
+        for count in range(self.scr_pos_y, self.scr_pos_y+self.stage_height+2):
+            prt_cell('cyan', 'white',(self.scr_pos_x+self.stage_width+1)*2 ,count , '||')
 
     def __prt_statusbar(self):
-        info_x = NEXT_DISP_POS_X
-        info_y = NEXT_DISP_POS_Y + 5
-        status_bar_x = SCREEN_POS[0] + STAGE_WIDTH + 2
-        status_bar_y = SCREEN_POS[1]
+        info_x = self.next_disp_pos_x
+        info_y = self.next_disp_pos_y + 5
+        status_bar_x = self.scr_pos_x + self.stage_width + 2
+        status_bar_y = self.scr_pos_y
 
         # clean previous StatusBar
-        for sby in range(status_bar_y, status_bar_y + STAGE_HEIGHT + 2):
+        for sby in range(status_bar_y, status_bar_y + self.stage_height + 2):
             for sbx in range(status_bar_x, status_bar_x + 11):
                 clean_cell(sbx * 2, sby)
         # now print it
@@ -204,27 +112,27 @@ class Tetris:
                      'Press P to pause')
 
     def __prt_stage(self):
-        for county in range(0, STAGE_HEIGHT):
-            for countx in range(0, STAGE_WIDTH):
+        for county in range(0, self.stage_height):
+            for countx in range(0, self.stage_width):
                 if self.stage[county][countx] > 0:
-                    prt_cell('white', 'black', (countx+SCREEN_POS[0]+1)*2, \
-                            county+SCREEN_POS[1]+1, '[]')
+                    prt_cell('white', 'black', (countx+self.scr_pos_x+1)*2, \
+                            county+self.scr_pos_y+1, self.pattern)
                 else:
-                    clean_cell((countx+SCREEN_POS[0]+1)*2, county+SCREEN_POS[1]+1)
+                    clean_cell((countx+self.scr_pos_x+1)*2, county+self.scr_pos_y+1)
 
     def __clean_stage(self):
-        for county in range(SCREEN_POS[1]+1, SCREEN_POS[1]+STAGE_HEIGHT+1):
-            for countx in range(SCREEN_POS[0]+1, SCREEN_POS[0]+STAGE_WIDTH+1):
+        for county in range(self.scr_pos_y+1, self.scr_pos_y+self.stage_height+1):
+            for countx in range(self.scr_pos_x+1, self.scr_pos_x+self.stage_width+1):
                 clean_cell(countx*2, county)
 
     def __purge_line(self):
         blank_line = []
-        for count in range(0, STAGE_WIDTH):
+        for count in range(0, self.stage_width):
             blank_line.append(0)
-        linecount = STAGE_HEIGHT - 1 
+        linecount = self.stage_height - 1
         countsum = 0 
         while linecount >= 0:
-            if self.stage[linecount].count(1) == STAGE_WIDTH:
+            if self.stage[linecount].count(1) == self.stage_width:
                 # found a full line, we move the upper lines down
                 countsum += 1
                 upperline = linecount
@@ -250,7 +158,7 @@ class Tetris:
             for x in range(0,len(next[0])):
                 if next[y][x] == 1:
                     prt_cell('cyan', 'white', (x + self.next_pos_x) * 2, \
-                             y + self.next_pos_y, CELL_PATTERN)
+                             y + self.next_pos_y, self.pattern)
 
     def __del_from_stage(self):
         tetri = TETRIS[self.type][self.orient]
@@ -267,8 +175,8 @@ class Tetris:
                     self.stage[self.pos_y + y][self.pos_x + x] += 1
 
     def __set_current(self):
-        self.pos_x = START_POS_X
-        self.pos_y = START_POS_Y
+        self.pos_x = self.stage_width/2 - 1
+        self.pos_y = 0
         self.type = self.next_type
         self.orient = self.next_orient
         self.__add_to_stage()
@@ -283,8 +191,8 @@ class Tetris:
         return 1
 
     def __set_next(self):
-        self.next_pos_x = NEXT_DISP_POS_X
-        self.next_pos_y = NEXT_DISP_POS_Y
+        self.next_pos_x = self.next_disp_pos_x
+        self.next_pos_y = self.next_disp_pos_y
         self.next_orient = gen_tetri_orient()
         self.next_type = gen_tetri_type()
 
@@ -298,8 +206,8 @@ class Tetris:
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
                 if tetri[y][x] == 1:
-                    if self.pos_x + x < 0 or self.pos_x + x > STAGE_WIDTH-1 \
-                            or self.pos_y + y > STAGE_HEIGHT-1:
+                    if self.pos_x + x < 0 or self.pos_x + x > self.stage_width-1 \
+                            or self.pos_y + y > self.stage_height-1:
                                 self.pos_x -= offset_x
                                 self.pos_y -= offset_y
                                 self.orient = (self.orient - is_rotate) % 4
@@ -486,7 +394,7 @@ class Game(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.thread_stop = False
-        self.tetris = Tetris()
+        self.tetris = Tetris(STAGE_WIDTH, STAGE_HEIGHT, SCREEN_POS, CELL_PATTERN)
         self.keylistener_thread = KeyListener(self.tetris)
 
     def __start_game(self):
@@ -494,7 +402,7 @@ class Game(threading.Thread):
         self.keylistener_thread.start()
 
     def __end_game(self, outstr):
-        set_cursor_pos(SCREEN_POS[1] + STAGE_HEIGHT + 4, 1)
+        set_cursor_pos(self.tetris.scr_pos_y + self.tetris.stage_height + 4, 1)
         print outstr
         if self.keylistener_thread.isAlive():
             print 'Press q to exit.'
