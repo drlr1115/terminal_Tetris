@@ -111,6 +111,10 @@ class Tetris:
             prt_cell('black', 'cyan', info_x * 2, info_y + 6, \
                      'Press P to pause')
 
+        prt_cell('black', 'cyan', info_x * 2, info_y + 8, 'Press + to +level')
+        prt_cell('black', 'cyan', info_x * 2, info_y + 10, 'Press - to -level')
+        prt_cell('black', 'cyan', info_x * 2, info_y + 12, 'Press q to quit')
+
     def __prt_stage(self):
         for county in range(0, self.stage_height):
             for countx in range(0, self.stage_width):
