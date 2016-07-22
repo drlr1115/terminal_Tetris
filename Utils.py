@@ -38,41 +38,45 @@ TETRIS = (TETRI0, TETRI1, TETRI2, TETRI3, TETRI4, TETRI5, TETRI6)
 
 
 # Key mapping
-K_W = 119
-K_A = 97
-K_S = 115
-K_D = 100
-K_I = 105
-K_J = 106
-K_K = 107
-K_L = 108
-K_ESC = 27
-K_SPACE = 32
-K_P = 112
-K_Q = 113
-K_MINUS = 45
-K_PLUS = 61
+KEY = {
+    'w'      : 119,
+    'a'      : 97,
+    's'      : 115,
+    'd'      : 100,
+    'i'      : 105,
+    'j'      : 106,
+    'k'      : 107,
+    'l'      : 108,
+    'ESC'    : 27,
+    'SPACE'  : 32,
+    'p'      : 112,
+    'q'      : 113,
+    '-'      : 45,
+    '+'      : 61,
+}
 
 
 # Color
-BCOLOR = {  'black'      : 40,
-            'red'        : 41,
-            'green'      : 42,
-            'yellow'     : 43,
-            'blue'       : 44,
-            'purple'     : 45,
-            'cyan'       : 46,
-            'white'      : 47,
+BCOLOR = {
+    'black'      : 40,
+    'red'        : 41,
+    'green'      : 42,
+    'yellow'     : 43,
+    'blue'       : 44,
+    'purple'     : 45,
+    'cyan'       : 46,
+    'white'      : 47,
 }
 
-FCOLOR = {  'black'      : 30,
-            'red'        : 31,
-            'green'      : 32,
-            'yellow'     : 33,
-            'blue'       : 34,
-            'purple'     : 35,
-            'cyan'       : 36,
-            'white'      : 37,
+FCOLOR = {
+    'black'      : 30,
+    'red'        : 31,
+    'green'      : 32,
+    'yellow'     : 33,
+    'blue'       : 34,
+    'purple'     : 35,
+    'cyan'       : 36,
+    'white'      : 37,
 }
 
 

@@ -28,12 +28,13 @@ Operating Instructions:\n \
 
 class Tetris:
     """Tetris Game"""
-    def __init__(self, width, height, scr_pos, pattern):
-        self.stage_width = width
-        self.stage_height = height
-        self.scr_pos_x = scr_pos[0]
-        self.scr_pos_y = scr_pos[1]
-        self.pattern = pattern
+    def __init__(self, config, tetris_def):
+        self.stage_width = config['STAGE_WIDTH']
+        self.stage_height = config['STAGE_HEIGHT'] 
+        self.scr_pos_x = config['SCREEN_POS_X']
+        self.scr_pos_y = config['SCREEN_POS_Y']
+        self.pattern = config['CELL_PATTERN']
+        self.tetris = tetris_def
         self.next_disp_pos_x = self.scr_pos_x + self.stage_width + 4
         self.next_disp_pos_y = self.scr_pos_y + 2
 
@@ -168,9 +169,12 @@ class Tetris:
             self.__prt_stage()
             self.__prt_statusbar()
 
+    def __get_tetri(self, type, orient):
+        return self.tetris[type][orient]
+
     def __prt_next(self):
         # This is only used when print the next Tetri
-        next = TETRIS[self.next_type][self.next_orient]
+        next = self.__get_tetri(self.next_type, self.next_orient)
         for y in range(0,len(next)):
             for x in range(0,len(next[0])):
                 if next[y][x] == 1:
@@ -178,14 +182,14 @@ class Tetris:
                              y + self.next_pos_y, self.pattern)
 
     def __del_from_stage(self):
-        tetri = TETRIS[self.type][self.orient]
+        tetri = self.__get_tetri(self.type, self.orient)
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
                 if tetri[y][x] == 1:
                     self.stage[self.pos_y + y][self.pos_x + x] -= 1
 
     def __add_to_stage(self):
-        tetri = TETRIS[self.type][self.orient]
+        tetri = self.__get_tetri(self.type, self.orient)
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
                 if tetri[y][x] == 1:
@@ -199,7 +203,7 @@ class Tetris:
         self.__add_to_stage()
         self.__prt_stage()
         # if Game Over
-        tetri = TETRIS[self.type][self.orient]
+        tetri = self.__get_tetri(self.type, self.orient)
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
                 if tetri[y][x] == 1:
@@ -218,7 +222,7 @@ class Tetris:
         self.orient = (self.orient + is_rotate) % 4
         self.pos_x += offset_x
         self.pos_y += offset_y
-        tetri = TETRIS[self.type][self.orient]
+        tetri = self.__get_tetri(self.type, self.orient)
         # test border
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
@@ -355,10 +359,11 @@ auto move down speed"""
         return 1
 
 class KeyListener(threading.Thread):
-    def __init__(self, tetris):
+    def __init__(self, tetris, key_map):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.tetris = tetris
+        self.key = key_map
         self.pause = 0
         self.exit_game = 0
         self.game_over = 0
@@ -376,31 +381,31 @@ class KeyListener(threading.Thread):
                     break
                 key = ord(keych)
                 if self.pause == 0:
-                    if key == K_A or key == K_J:
+                    if key == self.key['a'] or key == self.key['j']:
                         self.tetris.move_left()
-                    elif key == K_D or key == K_L:
+                    elif key == self.key['d'] or key == self.key['l']:
                         self.tetris.move_right()
-                    elif key == K_W or key == K_I:
+                    elif key == self.key['w'] or key == self.key['i']:
                         self.tetris.rotate()
-                    elif key == K_S or key == K_K:
+                    elif key == self.key['s'] or key == self.key['k']:
                         if self.tetris.move_down() == 0:
                             self.game_over = 1
                             self.exit_game = 1
                             break
-                    elif key == K_SPACE:
+                    elif key == self.key['SPACE']:
                         if self.tetris.drop() == 0:
                             self.game_over = 1
                             self.exit_game = 1
                             break
 
-                if key == K_MINUS:
+                if key == self.key['-']:
                     self.tetris.level_down()
-                elif key == K_PLUS:
+                elif key == self.key['+']:
                     self.tetris.level_up()
-                elif key == K_P:
+                elif key == self.key['p']:
                     self.pause = (self.pause + 1) % 2
                     self.tetris.do_pause(self.pause)
-                elif key == K_Q or key == K_ESC:
+                elif key == self.key['q'] or key == self.key['ESC']:
                     self.exit_game = 1
                     break
         finally:
@@ -413,8 +418,8 @@ class Game(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.thread_stop = False
-        self.tetris = Tetris(STAGE_WIDTH, STAGE_HEIGHT, SCREEN_POS, CELL_PATTERN)
-        self.keylistener_thread = KeyListener(self.tetris)
+        self.tetris = Tetris(CONFIG, TETRIS)
+        self.keylistener_thread = KeyListener(self.tetris, KEY)
 
     def __start_game(self):
         hide_cursor()
