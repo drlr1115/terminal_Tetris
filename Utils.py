@@ -56,23 +56,24 @@ K_PLUS = 61
 
 # Color
 BCOLOR = {  'black'      : 40,
-    'red'        : 41,
-        'green'      : 42,
+            'red'        : 41,
+            'green'      : 42,
             'yellow'     : 43,
             'blue'       : 44,
             'purple'     : 45,
             'cyan'       : 46,
             'white'      : 47,
-            }
+}
+
 FCOLOR = {  'black'      : 30,
-    'red'        : 31,
-        'green'      : 32,
+            'red'        : 31,
+            'green'      : 32,
             'yellow'     : 33,
             'blue'       : 34,
             'purple'     : 35,
             'cyan'       : 36,
             'white'      : 37,
-            }
+}
 
 
 def gen_tetri_type():

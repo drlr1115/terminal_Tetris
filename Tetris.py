@@ -56,7 +56,7 @@ class Tetris:
         
     def __prepare_stage(self):
         self.__prt_border()
-        self.__init_stage(self.stage_width,self.stage_height)
+        self.__init_stage(self.stage_width, self.stage_height)
         self.__set_next()
         self.__set_current()
         self.__set_next()
@@ -73,17 +73,23 @@ class Tetris:
         # clean screen
         print "\33[2J\33[0m"
         # top
-        for count in range(self.scr_pos_x*2, (self.scr_pos_x+self.stage_width+2)*2):
-            prt_cell('cyan', 'white',count ,self.scr_pos_y, '=')
+        for count in range(self.scr_pos_x * 2, \
+                           (self.scr_pos_x + self.stage_width + 2) * 2):
+            prt_cell('cyan', 'white', count, self.scr_pos_y, '=')
         # bottom
-        for count in range(self.scr_pos_x*2, (self.scr_pos_x+self.stage_width+2)*2):
-            prt_cell('cyan', 'white',count ,self.scr_pos_y+self.stage_height+1, '=')
+        for count in range(self.scr_pos_x * 2, \
+                           (self.scr_pos_x + self.stage_width + 2) * 2):
+            prt_cell('cyan', 'white', count, \
+                     self.scr_pos_y + self.stage_height + 1, '=')
         # left
-        for count in range(self.scr_pos_y, self.scr_pos_y+self.stage_height+2):
-            prt_cell('cyan', 'white',self.scr_pos_x*2 ,count , '||')
+        for count in range(self.scr_pos_y, \
+                           self.scr_pos_y + self.stage_height + 2):
+            prt_cell('cyan', 'white', self.scr_pos_x * 2, count, '||')
         # right
-        for count in range(self.scr_pos_y, self.scr_pos_y+self.stage_height+2):
-            prt_cell('cyan', 'white',(self.scr_pos_x+self.stage_width+1)*2 ,count , '||')
+        for count in range(self.scr_pos_y, \
+                           self.scr_pos_y + self.stage_height + 2):
+            prt_cell('cyan', 'white', \
+                     (self.scr_pos_x+self.stage_width + 1) * 2, count, '||')
 
     def __prt_statusbar(self):
         info_x = self.next_disp_pos_x
@@ -111,23 +117,30 @@ class Tetris:
             prt_cell('black', 'cyan', info_x * 2, info_y + 6, \
                      'Press P to pause')
 
-        prt_cell('black', 'cyan', info_x * 2, info_y + 8, 'Press + to +level')
-        prt_cell('black', 'cyan', info_x * 2, info_y + 10, 'Press - to -level')
-        prt_cell('black', 'cyan', info_x * 2, info_y + 12, 'Press q to quit')
+        prt_cell('black', 'cyan', info_x * 2, \
+                 info_y + 8, 'Press + to +level')
+        prt_cell('black', 'cyan', info_x * 2, \
+                 info_y + 10, 'Press - to -level')
+        prt_cell('black', 'cyan', info_x * 2, \
+                 info_y + 12, 'Press q to quit')
 
     def __prt_stage(self):
         for county in range(0, self.stage_height):
             for countx in range(0, self.stage_width):
                 if self.stage[county][countx] > 0:
-                    prt_cell('white', 'black', (countx+self.scr_pos_x+1)*2, \
-                            county+self.scr_pos_y+1, self.pattern)
+                    prt_cell('white', 'black', \
+                             (countx + self.scr_pos_x + 1) * 2, \
+                             county + self.scr_pos_y + 1, self.pattern)
                 else:
-                    clean_cell((countx+self.scr_pos_x+1)*2, county+self.scr_pos_y+1)
+                    clean_cell((countx + self.scr_pos_x + 1) * 2, \
+                               county + self.scr_pos_y + 1)
 
     def __clean_stage(self):
-        for county in range(self.scr_pos_y+1, self.scr_pos_y+self.stage_height+1):
-            for countx in range(self.scr_pos_x+1, self.scr_pos_x+self.stage_width+1):
-                clean_cell(countx*2, county)
+        for county in range(self.scr_pos_y + 1, self.scr_pos_y + \
+                            self.stage_height + 1):
+            for countx in range(self.scr_pos_x + 1, self.scr_pos_x + \
+                                self.stage_width + 1):
+                clean_cell(countx * 2, county)
 
     def __purge_line(self):
         blank_line = []
@@ -210,8 +223,9 @@ class Tetris:
         for y in range(0,len(tetri)):
             for x in range(0,len(tetri[0])):
                 if tetri[y][x] == 1:
-                    if self.pos_x + x < 0 or self.pos_x + x > self.stage_width-1 \
-                            or self.pos_y + y > self.stage_height-1:
+                    if self.pos_x + x < 0 or \
+                       self.pos_x + x > self.stage_width - 1 or \
+                       self.pos_y + y > self.stage_height - 1:
                                 self.pos_x -= offset_x
                                 self.pos_y -= offset_y
                                 self.orient = (self.orient - is_rotate) % 4
@@ -237,7 +251,8 @@ class Tetris:
         return 1
 
     def get_interval(self):
-        """Get sleep interval, which determine the tetrmino auto move down speed"""
+        """Get sleep interval, which determine the tetrmino \
+auto move down speed"""
         return self.interval
 
     def level_up(self):
