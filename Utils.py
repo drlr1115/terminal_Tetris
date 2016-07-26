@@ -104,7 +104,7 @@ def resume_cursor():
 
 
 class LockGuard():
-    """An auto-release Lock Guard, only support threading.RLock currently"""
+    """An auto-release Lock Guard, support all the lock type with acquire/release"""
     def __init__(self, lock):
         self.lock = lock
         self.lock.acquire()
